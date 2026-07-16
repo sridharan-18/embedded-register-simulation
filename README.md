@@ -4,14 +4,16 @@ A comprehensive GPIO register simulator built with Python and Tkinter, designed 
 
 ## Features
 
-- **Multiple Register Sizes**: Support for 8-bit, 16-bit, and 32-bit registers
-- **GPIO Register Simulation**: Simulate multiple registers with different bit widths
+- **STM32-like Register Map**: Realistic register names and memory addresses
+- **32-bit Registers**: All registers use 32-bit width matching STM32 ARM Cortex-M architecture
+- **GPIO Register Simulation**: GPIOA and GPIOB port registers (MODER, ODR, IDR)
+- **Peripheral Registers**: UART, SPI, ADC, and Timer control registers
 - **Bit Operations**: Set, Clear, Toggle, and Read individual bits with visual feedback
 - **Visual LEDs**: Real-time LED indicators showing the state of each register bit
 - **Binary Register View**: Live binary representation of register values
 - **Multiple Display Formats**: Binary, Decimal, and Hexadecimal display
 - **Interrupt Simulation**: Enable/disable interrupts with callback logging
-- **Multiple Registers**: Switch between different registers (8-bit, 16-bit, 32-bit)
+- **Multiple Registers**: Switch between different peripheral registers
 - **Direct Value Input**: Set entire register values at once
 - **Reset Function**: Reset register to zero with one click
 - **Quick Access Buttons**: Toggle bits instantly with dedicated buttons
@@ -49,19 +51,31 @@ python register_simulator.py
 
 ### Register Types
 
-The simulator includes registers of different sizes:
+The simulator includes STM32-like registers with realistic memory addresses:
 
-**8-bit Registers:**
-- **REG8_0 (0x00)**: 8-bit general-purpose register
-- **REG8_1 (0x01)**: 8-bit general-purpose register
+**GPIO Port A Registers:**
+- **GPIOA_MODER (0x48000000)**: GPIOA Mode Register - Configures pin modes (input/output/alternate/analog)
+- **GPIOA_ODR (0x48000014)**: GPIOA Output Data Register - Controls output pin states
+- **GPIOA_IDR (0x48000010)**: GPIOA Input Data Register - Reads input pin states
 
-**16-bit Registers:**
-- **REG16_0 (0x10)**: 16-bit general-purpose register
-- **REG16_1 (0x12)**: 16-bit general-purpose register
+**GPIO Port B Registers:**
+- **GPIOB_ODR (0x48000414)**: GPIOB Output Data Register - Controls output pin states
+- **GPIOB_IDR (0x48000410)**: GPIOB Input Data Register - Reads input pin states
 
-**32-bit Registers:**
-- **REG32_0 (0x20)**: 32-bit general-purpose register
-- **REG32_1 (0x24)**: 32-bit general-purpose register
+**UART Registers:**
+- **UART_CR1 (0x40011000)**: UART Control Register 1 - Configures UART settings
+- **UART_SR (0x40011000)**: UART Status Register - Shows UART status flags
+
+**SPI Registers:**
+- **SPI_CR1 (0x40013000)**: SPI Control Register 1 - Configures SPI settings
+
+**ADC Registers:**
+- **ADC_CR (0x50000000)**: ADC Control Register - Controls ADC operations
+
+**Timer Registers:**
+- **TIM_CR1 (0x40000000)**: Timer Control Register 1 - Configures timer settings
+
+All registers are 32-bit, matching the STM32 ARM Cortex-M architecture.
 
 ### Bit Operations
 
@@ -89,12 +103,13 @@ The simulator includes registers of different sizes:
 - Click "Set Value" to update the entire register
 - Click "Reset" to reset all bits to 0
 
-### Register Size Selection
+### Register Selection
 
-- Select different registers from the dropdown
-- The GUI automatically adapts to the register size (8, 16, or 32 bits)
-- LED indicators and binary view update accordingly
-- Bit position limits adjust based on register size
+- Select different peripheral registers from the dropdown
+- All registers are 32-bit (STM32 ARM Cortex-M architecture)
+- Memory addresses are displayed in hexadecimal format
+- LED indicators and binary view show all 32 bits
+- Bit position range is 0-31 for all registers
 
 ### Interrupt Simulation
 
@@ -110,7 +125,7 @@ The simulator includes registers of different sizes:
 - **Binary View**: Shows real-time binary representation
 - **Value Display**: Shows hexadecimal, decimal, and binary values
 - **Interrupt Log**: Timestamped log of all interrupt events
-- **Size Indicator**: Shows current register bit width (8/16/32-bit)
+- **Address Display**: Shows realistic STM32 memory addresses
 
 ## Architecture
 
