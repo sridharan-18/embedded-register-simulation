@@ -227,12 +227,17 @@ class RegisterSimulatorGUI:
         reg_frame = ttk.LabelFrame(main_frame, text="Register Selection")
         reg_frame.pack(fill=tk.X, pady=5)
         
+        ttk.Label(reg_frame, text="Search:").pack(side=tk.LEFT, padx=5)
+        self.search_entry = ttk.Entry(reg_frame, width=15)
+        self.search_entry.pack(side=tk.LEFT, padx=5)
+        self.search_entry.bind('<KeyRelease>', self.on_search)
+        
         ttk.Label(reg_frame, text="Select Register:").pack(side=tk.LEFT, padx=5)
         self.reg_var = tk.StringVar(value='GPIOA_ODR')
-        reg_combo = ttk.Combobox(reg_frame, textvariable=self.reg_var, 
+        self.reg_combo = ttk.Combobox(reg_frame, textvariable=self.reg_var, 
                                 values=list(self.registers.keys()), state='readonly')
-        reg_combo.pack(side=tk.LEFT, padx=5)
-        reg_combo.bind('<<ComboboxSelected>>', self.on_register_change)
+        self.reg_combo.pack(side=tk.LEFT, padx=5)
+        self.reg_combo.bind('<<ComboboxSelected>>', self.on_register_change)
         
         # Address display
         self.addr_label = ttk.Label(reg_frame, text=f"Address: 0x{self.current_register.address:08X}")
@@ -349,22 +354,40 @@ class RegisterSimulatorGUI:
             btn.grid(row=0, column=i, padx=2, pady=5)
             self.quick_buttons.append(btn)
     
+    def on_search(self, event):
+        """Handle search input to filter registers"""
+        search_term = self.search_entry.get().upper()
+        
+        if not search_term:
+            # Show all registers if search is empty
+            self.reg_combo['values'] = list(self.registers.keys())
+        else:
+            # Filter registers based on search term
+            filtered = [reg for reg in self.registers.keys() if search_term in reg]
+            self.reg_combo['values'] = filtered
+            
+            # If current selection is not in filtered list, select first filtered register
+            if self.reg_var.get() not in filtered and filtered:
+                self.reg_var.set(filtered[0])
+                self.on_register_change(None)
+    
     def on_register_change(self, event):
         """Handle register selection change"""
         reg_name = self.reg_var.get()
-        self.current_register = self.registers[reg_name]
-        
-        # Update address label
-        self.addr_label.config(text=f"Address: 0x{self.current_register.address:08X}")
-        
-        # Update memory map
-        self.update_memory_map()
-        
-        # Re-enable interrupt if it was enabled
-        if self.interrupt_var.get():
-            self.current_register.enable_interrupt(self.interrupt_callback)
-        
-        self.update_display()
+        if reg_name in self.registers:
+            self.current_register = self.registers[reg_name]
+            
+            # Update address label
+            self.addr_label.config(text=f"Address: 0x{self.current_register.address:08X}")
+            
+            # Update memory map
+            self.update_memory_map()
+            
+            # Re-enable interrupt if it was enabled
+            if self.interrupt_var.get():
+                self.current_register.enable_interrupt(self.interrupt_callback)
+            
+            self.update_display()
     
     def update_memory_map(self):
         """Update the memory map display with all registers"""

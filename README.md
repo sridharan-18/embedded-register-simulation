@@ -113,6 +113,20 @@ All registers are 32-bit, matching the STM32 ARM Cortex-M architecture.
 - LED indicators and binary view show all 32 bits
 - Bit position range is 0-31 for all registers
 
+### Register Search
+
+The simulator includes a search feature to quickly find registers:
+- Enter a search term in the "Search" field (e.g., "GPIO", "UART", "TIM")
+- The register dropdown automatically filters to show matching registers
+- Search is case-insensitive
+- Clear the search field to show all registers again
+
+**Search Examples:**
+- Search "GPIO" → Shows: GPIOA_MODER, GPIOA_ODR, GPIOA_IDR, GPIOB_ODR, GPIOB_IDR
+- Search "UART" → Shows: UART_CR1, UART_SR
+- Search "TIM" → Shows: TIM_CR1
+- Search "CR" → Shows: UART_CR1, SPI_CR1, ADC_CR, TIM_CR1
+
 ### Register Memory Map
 
 The simulator includes a live memory map display that shows:
