@@ -242,6 +242,22 @@ class RegisterSimulatorGUI:
         self.size_label = ttk.Label(reg_frame, text=f"Size: {self.current_register.size}-bit")
         self.size_label.pack(side=tk.LEFT, padx=20)
         
+        # Memory Map display
+        mem_frame = ttk.LabelFrame(main_frame, text="Register Memory Map")
+        mem_frame.pack(fill=tk.X, pady=5)
+        
+        self.memory_map_text = tk.Text(mem_frame, height=6, width=80,
+                                       bg='#1e1e1e', fg='#00ff00', font=('Courier New', 9),
+                                       state='disabled')
+        self.memory_map_scroll = ttk.Scrollbar(mem_frame, orient="vertical", 
+                                               command=self.memory_map_text.yview)
+        self.memory_map_text.configure(yscrollcommand=self.memory_map_scroll.set)
+        
+        self.memory_map_scroll.pack(side="right", fill="y")
+        self.memory_map_text.pack(side="left", fill="both", expand=True)
+        
+        self.update_memory_map()
+        
         # Visual LED display
         self.led_frame = ttk.LabelFrame(main_frame, text="LED Indicators")
         self.led_frame.pack(fill=tk.X, pady=5)
@@ -341,11 +357,45 @@ class RegisterSimulatorGUI:
         # Update address label
         self.addr_label.config(text=f"Address: 0x{self.current_register.address:08X}")
         
+        # Update memory map
+        self.update_memory_map()
+        
         # Re-enable interrupt if it was enabled
         if self.interrupt_var.get():
             self.current_register.enable_interrupt(self.interrupt_callback)
         
         self.update_display()
+    
+    def update_memory_map(self):
+        """Update the memory map display with all registers"""
+        self.memory_map_text.config(state='normal')
+        self.memory_map_text.delete(1.0, tk.END)
+        
+        # Sort registers by address
+        sorted_regs = sorted(self.registers.items(), key=lambda x: x[1].address)
+        
+        # Group by peripheral type
+        peripherals = {}
+        for reg_name, reg in sorted_regs:
+            if '_' in reg_name:
+                peripheral = reg_name.split('_')[0]
+                if peripheral not in peripherals:
+                    peripherals[peripheral] = []
+                peripherals[peripheral].append((reg_name, reg))
+        
+        # Display memory map
+        for peripheral in sorted(peripherals.keys()):
+            self.memory_map_text.insert(tk.END, f"{peripheral}:\n", 'header')
+            for reg_name, reg in peripherals[peripheral]:
+                marker = ">>> " if reg_name == self.current_register.name else "    "
+                value_str = f" = 0x{reg.value:08X}"
+                self.memory_map_text.insert(tk.END, f"{marker}0x{reg.address:08X} {reg_name}{value_str}\n")
+            self.memory_map_text.insert(tk.END, "\n")
+        
+        # Configure tags
+        self.memory_map_text.tag_config('header', font=('Courier New', 10, 'bold'), foreground='#ffffff')
+        
+        self.memory_map_text.config(state='disabled')
     
     def set_bit(self):
         """Set a specific bit"""
@@ -456,6 +506,9 @@ class RegisterSimulatorGUI:
         # Update value entry
         self.value_entry.delete(0, tk.END)
         self.value_entry.insert(0, str(value))
+        
+        # Update memory map to show current values
+        self.update_memory_map()
 
 
 def main():

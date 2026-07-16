@@ -17,6 +17,8 @@ A comprehensive GPIO register simulator built with Python and Tkinter, designed 
 - **Direct Value Input**: Set entire register values at once
 - **Reset Function**: Reset register to zero with one click
 - **Quick Access Buttons**: Toggle bits instantly with dedicated buttons
+- **Live Memory Map**: Display all registers with addresses and current values
+- **Memory-Mapped I/O**: Learn how peripherals are mapped to memory addresses
 
 ## Tech Stack
 
@@ -110,6 +112,41 @@ All registers are 32-bit, matching the STM32 ARM Cortex-M architecture.
 - Memory addresses are displayed in hexadecimal format
 - LED indicators and binary view show all 32 bits
 - Bit position range is 0-31 for all registers
+
+### Register Memory Map
+
+The simulator includes a live memory map display that shows:
+- All registers organized by peripheral type (GPIOA, GPIOB, UART, SPI, ADC, TIM)
+- Memory addresses in hexadecimal format (e.g., 0x40020000)
+- Current values of all registers
+- Currently selected register highlighted with ">>>" marker
+
+**Example Memory Map Display:**
+```
+ADC:
+    0x50000000 ADC_CR = 0x00000000
+
+GPIOA:
+    0x48000000 GPIOA_MODER = 0x00000000
+    0x48000010 GPIOA_IDR = 0x00000000
+>>> 0x48000014 GPIOA_ODR = 0x00000000
+
+GPIOB:
+    0x48000410 GPIOB_IDR = 0x00000000
+    0x48000414 GPIOB_ODR = 0x00000000
+
+SPI:
+    0x40013000 SPI_CR1 = 0x00000000
+
+TIM:
+    0x40000000 TIM_CR1 = 0x00000000
+
+UART:
+    0x40011000 UART_CR1 = 0x00000000
+    0x40011000 UART_SR = 0x00000000
+```
+
+This helps students understand **memory-mapped I/O** concepts used in embedded systems.
 
 ### Interrupt Simulation
 
