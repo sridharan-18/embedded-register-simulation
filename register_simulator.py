@@ -55,7 +55,13 @@ class Register:
     
     def get_hex_string(self) -> str:
         """Get hexadecimal representation of the register"""
-        return format(self.value, f'0{self.size // 4}X')
+        hex_digits = max(1, self.size // 4)
+        return format(self.value, f'0{hex_digits}X')
+    
+    def reset(self) -> None:
+        """Reset register to 0"""
+        self.value = 0
+        self._check_interrupt()
     
     def enable_interrupt(self, callback: Callable) -> None:
         """Enable interrupt with callback function"""
@@ -181,15 +187,18 @@ class RegisterSimulatorGUI:
         self.style.configure('TButton', background='#444', foreground='white')
         self.style.configure('TEntry', fieldbackground='#444', foreground='white')
         
-        # Initialize registers
+        # Initialize registers with different sizes
         self.registers: Dict[str, Register] = {
-            'GPIO_DIR': Register('GPIO_DIR', 8, 0x00),  # Direction register
-            'GPIO_OUT': Register('GPIO_OUT', 8, 0x01),  # Output register
-            'GPIO_IN':  Register('GPIO_IN', 8, 0x02),  # Input register
-            'GPIO_IE':  Register('GPIO_IE', 8, 0x03),  # Interrupt enable
+            'REG8_0':  Register('REG8_0', 8, 0x00),   # 8-bit register
+            'REG8_1':  Register('REG8_1', 8, 0x01),   # 8-bit register
+            'REG16_0': Register('REG16_0', 16, 0x10),  # 16-bit register
+            'REG16_1': Register('REG16_1', 16, 0x12),  # 16-bit register
+            'REG32_0': Register('REG32_0', 32, 0x20),  # 32-bit register
+            'REG32_1': Register('REG32_1', 32, 0x24),  # 32-bit register
         }
         
-        self.current_register = self.registers['GPIO_OUT']
+        self.current_register = self.registers['REG8_0']
+        self.current_size = 8
         
         self.create_widgets()
         self.update_display()
@@ -205,7 +214,7 @@ class RegisterSimulatorGUI:
         reg_frame.pack(fill=tk.X, pady=5)
         
         ttk.Label(reg_frame, text="Select Register:").pack(side=tk.LEFT, padx=5)
-        self.reg_var = tk.StringVar(value='GPIO_OUT')
+        self.reg_var = tk.StringVar(value='REG8_0')
         reg_combo = ttk.Combobox(reg_frame, textvariable=self.reg_var, 
                                 values=list(self.registers.keys()), state='readonly')
         reg_combo.pack(side=tk.LEFT, padx=5)
@@ -215,18 +224,22 @@ class RegisterSimulatorGUI:
         self.addr_label = ttk.Label(reg_frame, text=f"Address: 0x{self.current_register.address:02X}")
         self.addr_label.pack(side=tk.LEFT, padx=20)
         
-        # Visual LED display
-        led_frame = ttk.LabelFrame(main_frame, text="LED Indicators")
-        led_frame.pack(fill=tk.X, pady=5)
+        # Size display
+        self.size_label = ttk.Label(reg_frame, text=f"Size: {self.current_register.size}-bit")
+        self.size_label.pack(side=tk.LEFT, padx=20)
         
-        self.led_display = LEDIndicator(led_frame, 8)
+        # Visual LED display
+        self.led_frame = ttk.LabelFrame(main_frame, text="LED Indicators")
+        self.led_frame.pack(fill=tk.X, pady=5)
+        
+        self.led_display = LEDIndicator(self.led_frame, self.current_size)
         self.led_display.pack(pady=10)
         
         # Binary view
-        binary_frame = ttk.LabelFrame(main_frame, text="Binary View")
-        binary_frame.pack(fill=tk.X, pady=5)
+        self.binary_frame = ttk.LabelFrame(main_frame, text="Binary View")
+        self.binary_frame.pack(fill=tk.X, pady=5)
         
-        self.binary_view = BinaryView(binary_frame, 8)
+        self.binary_view = BinaryView(self.binary_frame, self.current_size)
         self.binary_view.pack(pady=10)
         
         # Value display
@@ -244,7 +257,8 @@ class RegisterSimulatorGUI:
         bit_frame.pack(fill=tk.X, pady=5)
         
         # Bit selection
-        ttk.Label(bit_frame, text="Bit Position (0-7):").grid(row=0, column=0, padx=5, pady=5)
+        self.bit_pos_label = ttk.Label(bit_frame, text=f"Bit Position (0-{self.current_size-1}):")
+        self.bit_pos_label.grid(row=0, column=0, padx=5, pady=5)
         self.bit_entry = ttk.Entry(bit_frame, width=5)
         self.bit_entry.grid(row=0, column=1, padx=5, pady=5)
         self.bit_entry.insert(0, '0')
@@ -253,23 +267,24 @@ class RegisterSimulatorGUI:
         ttk.Button(bit_frame, text="Set Bit", command=self.set_bit).grid(row=0, column=2, padx=5, pady=5)
         ttk.Button(bit_frame, text="Clear Bit", command=self.clear_bit).grid(row=0, column=3, padx=5, pady=5)
         ttk.Button(bit_frame, text="Toggle Bit", command=self.toggle_bit).grid(row=0, column=4, padx=5, pady=5)
+        ttk.Button(bit_frame, text="Read Bit", command=self.read_bit).grid(row=0, column=5, padx=5, pady=5)
         
         # Direct value input
-        ttk.Label(bit_frame, text="Direct Value (0-255):").grid(row=1, column=0, padx=5, pady=5)
+        max_val = (1 << self.current_size) - 1
+        self.value_label = ttk.Label(bit_frame, text=f"Direct Value (0-{max_val}):")
+        self.value_label.grid(row=1, column=0, padx=5, pady=5)
         self.value_entry = ttk.Entry(bit_frame, width=8)
         self.value_entry.grid(row=1, column=1, padx=5, pady=5)
         self.value_entry.insert(0, '0')
         ttk.Button(bit_frame, text="Set Value", command=self.set_value).grid(row=1, column=2, padx=5, pady=5)
-        ttk.Button(bit_frame, text="Clear All", command=self.clear_all).grid(row=1, column=3, padx=5, pady=5)
+        ttk.Button(bit_frame, text="Reset", command=self.reset_register).grid(row=1, column=3, padx=5, pady=5)
         
         # Quick bit buttons
-        quick_frame = ttk.LabelFrame(main_frame, text="Quick Bit Access")
-        quick_frame.pack(fill=tk.X, pady=5)
+        self.quick_frame = ttk.LabelFrame(main_frame, text="Quick Bit Access")
+        self.quick_frame.pack(fill=tk.X, pady=5)
+        self.quick_buttons = []
         
-        for i in range(8):
-            btn = ttk.Button(quick_frame, text=f'B{i}', width=4,
-                           command=lambda bit=i: self.toggle_bit_direct(bit))
-            btn.grid(row=0, column=i, padx=2, pady=5)
+        self.create_quick_buttons()
         
         # Interrupt controls
         int_frame = ttk.LabelFrame(main_frame, text="Interrupt Control")
@@ -288,14 +303,51 @@ class RegisterSimulatorGUI:
         # Clear log button
         ttk.Button(main_frame, text="Clear Log", command=self.interrupt_logger.clear).pack(pady=5)
         
-        # Enable interrupts for GPIO_OUT register
+        # Enable interrupts for current register
         self.current_register.enable_interrupt(self.interrupt_callback)
+    
+    def create_quick_buttons(self):
+        """Create quick access buttons for bits based on current register size"""
+        # Clear existing buttons
+        for btn in self.quick_buttons:
+            btn.destroy()
+        self.quick_buttons.clear()
+        
+        # Create new buttons
+        for i in range(self.current_size):
+            btn = ttk.Button(self.quick_frame, text=f'B{i}', width=4,
+                           command=lambda bit=i: self.toggle_bit_direct(bit))
+            btn.grid(row=0, column=i, padx=2, pady=5)
+            self.quick_buttons.append(btn)
     
     def on_register_change(self, event):
         """Handle register selection change"""
         reg_name = self.reg_var.get()
         self.current_register = self.registers[reg_name]
+        self.current_size = self.current_register.size
+        
+        # Update address and size labels
         self.addr_label.config(text=f"Address: 0x{self.current_register.address:02X}")
+        self.size_label.config(text=f"Size: {self.current_register.size}-bit")
+        
+        # Recreate LED and BinaryView with new size
+        self.led_display.frame.destroy()
+        self.led_display = LEDIndicator(self.led_frame, self.current_size)
+        self.led_display.pack(pady=10)
+        
+        self.binary_view.frame.destroy()
+        self.binary_view = BinaryView(self.binary_frame, self.current_size)
+        self.binary_view.pack(pady=10)
+        
+        # Update bit position label
+        self.bit_pos_label.config(text=f"Bit Position (0-{self.current_size-1}):")
+        
+        # Update value label
+        max_val = (1 << self.current_size) - 1
+        self.value_label.config(text=f"Direct Value (0-{max_val}):")
+        
+        # Recreate quick buttons
+        self.create_quick_buttons()
         
         # Re-enable interrupt if it was enabled
         if self.interrupt_var.get():
@@ -307,11 +359,11 @@ class RegisterSimulatorGUI:
         """Set a specific bit"""
         try:
             bit = int(self.bit_entry.get())
-            if 0 <= bit <= 7:
+            if 0 <= bit < self.current_size:
                 self.current_register.set_bit(bit)
                 self.update_display()
             else:
-                messagebox.showerror("Error", "Bit position must be between 0 and 7")
+                messagebox.showerror("Error", f"Bit position must be between 0 and {self.current_size-1}")
         except ValueError:
             messagebox.showerror("Error", "Please enter a valid bit position")
     
@@ -319,11 +371,11 @@ class RegisterSimulatorGUI:
         """Clear a specific bit"""
         try:
             bit = int(self.bit_entry.get())
-            if 0 <= bit <= 7:
+            if 0 <= bit < self.current_size:
                 self.current_register.clear_bit(bit)
                 self.update_display()
             else:
-                messagebox.showerror("Error", "Bit position must be between 0 and 7")
+                messagebox.showerror("Error", f"Bit position must be between 0 and {self.current_size-1}")
         except ValueError:
             messagebox.showerror("Error", "Please enter a valid bit position")
     
@@ -331,11 +383,23 @@ class RegisterSimulatorGUI:
         """Toggle a specific bit"""
         try:
             bit = int(self.bit_entry.get())
-            if 0 <= bit <= 7:
+            if 0 <= bit < self.current_size:
                 self.current_register.toggle_bit(bit)
                 self.update_display()
             else:
-                messagebox.showerror("Error", "Bit position must be between 0 and 7")
+                messagebox.showerror("Error", f"Bit position must be between 0 and {self.current_size-1}")
+        except ValueError:
+            messagebox.showerror("Error", "Please enter a valid bit position")
+    
+    def read_bit(self):
+        """Read a specific bit"""
+        try:
+            bit = int(self.bit_entry.get())
+            if 0 <= bit < self.current_size:
+                bit_value = self.current_register.get_bit(bit)
+                messagebox.showinfo("Bit Read", f"Bit {bit} value: {bit_value}")
+            else:
+                messagebox.showerror("Error", f"Bit position must be between 0 and {self.current_size-1}")
         except ValueError:
             messagebox.showerror("Error", "Please enter a valid bit position")
     
@@ -350,17 +414,18 @@ class RegisterSimulatorGUI:
         """Set the entire register value"""
         try:
             value = int(self.value_entry.get())
-            if 0 <= value <= 255:
+            max_val = (1 << self.current_size) - 1
+            if 0 <= value <= max_val:
                 self.current_register.set_value(value)
                 self.update_display()
             else:
-                messagebox.showerror("Error", "Value must be between 0 and 255")
+                messagebox.showerror("Error", f"Value must be between 0 and {max_val}")
         except ValueError:
             messagebox.showerror("Error", "Please enter a valid value")
     
-    def clear_all(self):
-        """Clear all bits (set to 0)"""
-        self.current_register.set_value(0)
+    def reset_register(self):
+        """Reset register to 0"""
+        self.current_register.reset()
         self.value_entry.delete(0, tk.END)
         self.value_entry.insert(0, '0')
         self.update_display()
@@ -381,7 +446,8 @@ class RegisterSimulatorGUI:
     
     def interrupt_callback(self, reg_name: str, value: int):
         """Callback function for interrupts"""
-        self.interrupt_logger.log(f"Interrupt: {reg_name} changed to 0x{value:02X}")
+        hex_digits = max(1, self.current_size // 4)
+        self.interrupt_logger.log(f"Interrupt: {reg_name} changed to 0x{value:0{hex_digits}X}")
     
     def update_display(self):
         """Update all display elements"""

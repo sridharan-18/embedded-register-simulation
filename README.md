@@ -4,13 +4,16 @@ A comprehensive GPIO register simulator built with Python and Tkinter, designed 
 
 ## Features
 
-- **GPIO Register Simulation**: Simulate multiple 8-bit GPIO registers (Direction, Output, Input, Interrupt Enable)
-- **Bit Operations**: Set, Clear, and Toggle individual bits with visual feedback
+- **Multiple Register Sizes**: Support for 8-bit, 16-bit, and 32-bit registers
+- **GPIO Register Simulation**: Simulate multiple registers with different bit widths
+- **Bit Operations**: Set, Clear, Toggle, and Read individual bits with visual feedback
 - **Visual LEDs**: Real-time LED indicators showing the state of each register bit
 - **Binary Register View**: Live binary representation of register values
+- **Multiple Display Formats**: Binary, Decimal, and Hexadecimal display
 - **Interrupt Simulation**: Enable/disable interrupts with callback logging
-- **Multiple Registers**: Switch between different GPIO registers
+- **Multiple Registers**: Switch between different registers (8-bit, 16-bit, 32-bit)
 - **Direct Value Input**: Set entire register values at once
+- **Reset Function**: Reset register to zero with one click
 - **Quick Access Buttons**: Toggle bits instantly with dedicated buttons
 
 ## Tech Stack
@@ -46,33 +49,52 @@ python register_simulator.py
 
 ### Register Types
 
-The simulator includes four 8-bit registers:
+The simulator includes registers of different sizes:
 
-- **GPIO_DIR (0x00)**: Direction register - controls pin direction (input/output)
-- **GPIO_OUT (0x01)**: Output register - sets output pin values
-- **GPIO_IN (0x02)**: Input register - reads input pin values
-- **GPIO_IE (0x03)**: Interrupt Enable register - enables interrupts per bit
+**8-bit Registers:**
+- **REG8_0 (0x00)**: 8-bit general-purpose register
+- **REG8_1 (0x01)**: 8-bit general-purpose register
+
+**16-bit Registers:**
+- **REG16_0 (0x10)**: 16-bit general-purpose register
+- **REG16_1 (0x12)**: 16-bit general-purpose register
+
+**32-bit Registers:**
+- **REG32_0 (0x20)**: 32-bit general-purpose register
+- **REG32_1 (0x24)**: 32-bit general-purpose register
 
 ### Bit Operations
 
 1. **Set Bit**: Sets a specific bit to 1
-   - Enter bit position (0-7)
+   - Enter bit position (0 to size-1)
    - Click "Set Bit"
 
 2. **Clear Bit**: Sets a specific bit to 0
-   - Enter bit position (0-7)
+   - Enter bit position (0 to size-1)
    - Click "Clear Bit"
 
 3. **Toggle Bit**: Flips a specific bit
-   - Enter bit position (0-7)
+   - Enter bit position (0 to size-1)
    - Click "Toggle Bit"
-   - Or use quick access buttons (B0-B7)
+   - Or use quick access buttons (B0-Bn)
+
+4. **Read Bit**: Reads the value of a specific bit
+   - Enter bit position (0 to size-1)
+   - Click "Read Bit"
+   - Displays the bit value in a popup
 
 ### Direct Value Input
 
-- Enter a value (0-255) in the "Direct Value" field
+- Enter a value (0 to max based on register size) in the "Direct Value" field
 - Click "Set Value" to update the entire register
-- Click "Clear All" to reset all bits to 0
+- Click "Reset" to reset all bits to 0
+
+### Register Size Selection
+
+- Select different registers from the dropdown
+- The GUI automatically adapts to the register size (8, 16, or 32 bits)
+- LED indicators and binary view update accordingly
+- Bit position limits adjust based on register size
 
 ### Interrupt Simulation
 
@@ -86,8 +108,9 @@ The simulator includes four 8-bit registers:
 
 - **LED Indicators**: Green LEDs indicate bit=1, dark LEDs indicate bit=0
 - **Binary View**: Shows real-time binary representation
-- **Value Display**: Shows both hexadecimal and decimal values
+- **Value Display**: Shows hexadecimal, decimal, and binary values
 - **Interrupt Log**: Timestamped log of all interrupt events
+- **Size Indicator**: Shows current register bit width (8/16/32-bit)
 
 ## Architecture
 
@@ -108,6 +131,9 @@ register.clear_bit(bit_position)  # Set bit to 0
 register.toggle_bit(bit_position) # Flip bit
 register.get_bit(bit_position)    # Read bit value
 register.set_value(value)         # Set entire register
+register.reset()                  # Reset register to 0
+register.get_binary_string()      # Get binary representation
+register.get_hex_string()         # Get hexadecimal representation
 ```
 
 ## Example Use Cases
