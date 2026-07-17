@@ -1,4 +1,4 @@
-# Embedded Register Simulator ⭐⭐⭐⭐⭐
+# Embedded Register Simulator
 
 A comprehensive GPIO register simulator built with Python and Tkinter, designed for embedded systems education and development.
 
